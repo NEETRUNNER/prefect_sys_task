@@ -1,21 +1,22 @@
 import { Children, Dispatch, ReactElement, ReactNode, SetStateAction, useEffect, useRef, useState } from "react"
 
-interface OptionProps {
+interface OptionProps<T> {
+  value: T;
   children: string;
 }
 
-interface SelectProps {
-  children: ReactElement<OptionProps> | ReactElement<OptionProps>[];
-  setCurrValue: Dispatch<SetStateAction<"EUR" | "USD" | "UAH" | "PLN">>;
-  data: "EUR" | "USD" | "UAH" | "PLN"
+interface SelectProps<T extends string | number> {
+  children: ReactElement<OptionProps<T>> | ReactElement<OptionProps<T>>[];
+  setCurrValue: Dispatch<SetStateAction<T>>;
+  outputName: ReactNode;
 }
 
-export default function Select({children, setCurrValue, data}: SelectProps) {
+export default function Select<T extends string | number>({children, setCurrValue, outputName}: SelectProps<T>) {
   const [toggleMenu, setToggleMenu] = useState<boolean>(false);
 
-  const menu = useRef<HTMLInputElement | null>(null)
-  const select = useRef<HTMLInputElement | null>(null)
-
+  const menu = useRef<HTMLDivElement | null>(null)
+  const select = useRef<HTMLDivElement | null>(null)
+  
   useEffect(() => { // Тригер для отслеживания кликов мыши
     function handleClickOutside(event: MouseEvent) {
       if (menu.current && select.current && select.current?.contains(event.target as Node) && !menu.current.contains(event.target as Node)) {
@@ -30,15 +31,16 @@ export default function Select({children, setCurrValue, data}: SelectProps) {
   }, [])
 
   const options = Children.map(children, child => { // Получаем елементы сущности Children, то-есть детей внутри этого компонента, пользовался нейронкой, так как даже не знал о таком в реакте, не приходилось распаковывать children чтобы взять по елементу из него, обычно просто прокидывал в компонент что-то
-
+    const element = child as ReactElement<OptionProps<T>>
     return {
-      label: child.props.children
+      value: element.props.value,
+      label: element.props.children
     }
   })
 
   return (
     <div ref={select} onClick={() => setToggleMenu(!toggleMenu)} className="select-menu">
-      <p className="">{data}</p>
+      <p className="">{outputName}</p>
       <div className={`${toggleMenu ? "open" : "close"}`}>
         <div ref={menu} className="menu-list">
           {options.map((option, index) => (
@@ -46,7 +48,7 @@ export default function Select({children, setCurrValue, data}: SelectProps) {
             key={index} 
             className="select-option__item"
             onClick={() => {
-              setCurrValue(option.label as "EUR" | "USD" | "UAH" | "PLN"); setToggleMenu(toggleMenu)
+              setCurrValue(option.value); setToggleMenu(!toggleMenu)
             }}>
               {option.label}
             </div>
@@ -58,7 +60,7 @@ export default function Select({children, setCurrValue, data}: SelectProps) {
 }
 
 // Подкомпонент Option, по сути это те же children просто с приставкой Option
-Select.Option = function Option({ children, value }: { children: ReactNode, value?: string }) {
+Select.Option = function Option<T>({ children, value }: OptionProps<T>) {
   console.log(children, value)
   return null;
 };
